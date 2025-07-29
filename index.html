@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FF9152">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Premium Productivity Suites</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #F9FAFB;
+      --primary-btn: #6a9ee6ff;
+      --primary-btn-hover: #546bebff;
+      --plggy-color: #F875AA;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --border-color: #DDDDDD;
+      --success: #4CAF50;
+      --error: #F44336;
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 10px;
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      background: var(--primary-btn);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition);
+      width: 100%;
+      margin: 8px 0;
+      font-size: 0.95rem;
+      -webkit-appearance: none;
+    }
+
+    .btn:hover {
+      background: var(--primary-btn-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn:hover {
+      transition: transform 0.3s ease;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+    }
+
+    .btn-large {
+      padding: 14px 24px;
+      font-size: 1rem;
+    }
+
+    .access-status {
+      padding: 10px 16px;
+      border-radius: 50px;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(76, 175, 80, 0.2);
+    }
+
+    .access-status.expired {
+      background: rgba(244, 67, 54, 0.15);
+      color: var(--error);
+      border-color: rgba(244, 67, 54, 0.2);
+    }
+
+    .timer {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary-btn);
+      background: rgba(255, 255, 255, 0.7);
+      padding: 10px 16px;
+      border-radius: 10px;
+      display: inline-block;
+      margin: 8px 0;
+      width: 100%;
+      text-align: center;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      color: var(--primary-btn);
+      margin: 15px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .feature-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      text-decoration: none;
+      color: var(--text-primary);
+      padding: 16px;
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      transition: var(--transition);
+      -webkit-touch-callout: none;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255, 145, 82, 0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 12px;
+      color: var(--primary-btn);
+      font-size: 1.5rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .notification {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      left: 15px;
+      padding: 12px;
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 1000;
+      transform: translateY(120px);
+      opacity: 0;
+      transition: var(--transition);
+      max-width: calc(100% - 30px);
+    }
+
+    .notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .notification i {
+      font-size: 1.3rem;
+    }
+
+    .notification.success {
+      color: var(--success);
+    }
+
+    .notification.error {
+      color: var(--error);
+    }
+
+    .notification.info {
+      color: var(--primary-btn);
+    }
+
+    .welcome-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary-btn), var(--primary-btn-hover));
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+      color: white;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .welcome-screen.hidden {
+      display: none;
+    }
+
+    .welcome-logo {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .welcome-logo i {
+      font-size: 2.5rem;
+    }
+
+    .welcome-content h1 {
+      font-size: 1.6rem;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+
+    .welcome-content p {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 25px;
+      opacity: 0.9;
+    }
+
+    /* Mobile-specific optimizations */
+    @media (max-width: 599px) {
+      body {
+        padding: 8px;
+      }
+      
+      .glass {
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      
+      .btn {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+      }
+      
+      .btn-large {
+        padding: 14px 20px;
+      }
+      
+      .timer {
+        font-size: 1.3rem;
+        padding: 8px 12px;
+      }
+      
+      .section-title {
+        font-size: 1.2rem;
+        margin: 12px 0 10px;
+      }
+      
+      .feature-card {
+        padding: 14px;
+      }
+      
+      .feature-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.3rem;
+      }
+      
+      .feature-card h3 {
+        font-size: 1rem;
+      }
+      
+      .feature-card p {
+        font-size: 0.85rem;
+      }
+      
+      .welcome-content h1 {
+        font-size: 1.4rem;
+      }
+      
+      .welcome-content p {
+        font-size: 0.9rem;
+      }
+    }
+
+    /* Tablet and Desktop Styles */
+    @media (min-width: 600px) {
+      body {
+        padding: 15px;
+      }
+      
+      .glass {
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 16px;
+      }
+      
+      .btn {
+        padding: 12px 24px;
+        max-width: 300px;
+      }
+      
+      .features-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      
+      .timer {
+        font-size: 1.8rem;
+        width: auto;
+      }
+      
+      .notification {
+        left: auto;
+        right: 20px;
+        max-width: 350px;
+      }
+    }
+
+    /* Animation */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease forwards;
+    }
+  </style>
+</head>
+<body>
+  <!-- Welcome/Intro Screen -->
+  <div class="welcome-screen" id="welcome-screen">
+    <div class="welcome-logo">
+      <i class="fas fa-crown"></i>
+    </div>
+    <div class="welcome-content">
+      <h1>Premium Productivity Suite</h1>
+      <p>Unlock all premium features for 24 hours by clicking the button below. Your access will persist even if you close your browser or restart your device.</p>
+      <button class="btn btn-large" id="start-ads-btn">
+        <i class="fas fa-play-circle"></i>
+        Unlock Premium Features
+      </button>
+    </div>
+  </div>
+
+  <!-- Main App Container -->
+  <div id="app-container" style="display: none;">
+    <div class="dashboard-content">
+      <section class="glass">
+        <h2><i class="fas fa-star"></i> Welcome to Your Premium Productivity Suite</h2>
+        <p>Your premium access gives you full, unlimited use of all tools for 24 hours. After this period, you can renew your access.</p>
+        
+        <div style="text-align: center; margin: 15px 0;">
+          <div class="access-status" id="access-status">
+            <i class="fas fa-unlock"></i>
+            <span>Premium Access Active</span>
+          </div>
+          
+          <div class="timer">
+            <span id="hours">23</span>:<span id="minutes">59</span>:<span id="seconds">59</span>
+          </div>
+          
+          <button class="btn" id="renew-btn">
+            <i class="fas fa-sync-alt"></i>
+            Renew Access
+          </button>
+        </div>
+        
+        <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+          <i class="fas fa-info-circle"></i> Premium access expires on: <strong id="expiration-time">July 8, 2023 14:30</strong>
+        </div>
+      </section>
+      
+      <h2 class="section-title"><i class="fas fa-tools"></i> Premium Productivity Tools</h2>
+      
+      <div class="features-grid">
+        <a href="to do list.html" class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-tasks"></i>
+          </div>
+          <h3>To-Do List</h3>
+          <p>Organize tasks and boost your productivity</p>
+        </a>
+        
+        <a href="Digital Notebook.html" class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-sticky-note"></i>
+          </div>
+          <h3>Digital Notes</h3>
+          <p>Capture ideas and information seamlessly</p>
+        </a>
+        
+        <a href="30-Day Savings Challenge Tracker.html" class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-bullseye"></i>
+          </div>
+          <h3>30-Day Money Saving Tracker</h3>
+          <p>Reach your financial goals with daily tracking</p>
+        </a>
+        
+        <a href="Weekly Planner 2.html" class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-redo"></i>
+          </div>
+          <h3>Weekly Planner</h3>
+          <p>Plan your week for maximum efficiency</p>
+        </a>
+        
+        <a href="weekly.html" class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <h3>Daily Planner</h3>
+          <p>Another perspective for your weekly planning</p>
+        </a>
+        
+        <a href="Digital Budget Planner.html" class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-project-diagram"></i>
+          </div>
+          <h3>Digital Budget Planner</h3>
+          <p>Take control of your finances</p>
+        </a>
+        
+        <a href="Savings Tracker.html" class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-book"></i>
+          </div>
+          <h3>Savings Tracker</h3>
+          <p>Monitor and grow your savings</p>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Notification Element -->
+  <div class="notification" id="notification">
+    <i class="fas fa-check-circle"></i>
+    <div class="notification-content">
+      <strong>Success!</strong>
+      <p>Your premium access has been activated for 24 hours.</p>
+    </div>
+  </div>
+
+  <!-- Fallback Message -->
+  <noscript>
+    <div class="glass" style="margin: 20px; padding: 20px; text-align: center;">
+      <h2>JavaScript Required</h2>
+      <p>This app requires JavaScript to function properly. Please enable JavaScript in your browser settings.</p>
+    </div>
+  </noscript>
+
+  <script type="module">
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('serviceWorker.js')
+        .then(registration => {
+          console.log('ServiceWorker registration successful');
+        })
+        .catch(err => {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+
+    // State management
+    const state = {
+      unlockTime: null,
+      timerInterval: null,
+      premiumActive: false
+    };
+
+    // DOM Elements
+    const elements = {
+      welcomeScreen: document.getElementById('welcome-screen'),
+      appContainer: document.getElementById('app-container'),
+      hours: document.getElementById('hours'),
+      minutes: document.getElementById('minutes'),
+      seconds: document.getElementById('seconds'),
+      renewBtn: document.getElementById('renew-btn'),
+      notification: document.getElementById('notification'),
+      expirationTime: document.getElementById('expiration-time'),
+      accessStatus: document.getElementById('access-status'),
+      startAdsBtn: document.getElementById('start-ads-btn'),
+      featureCards: document.querySelectorAll('.feature-card')
+    };
+
+    // Initialize the app
+    function initApp() {
+      // Check for existing unlock
+      const savedUnlock = localStorage.getItem('premiumUnlock');
+      if (savedUnlock) {
+        state.unlockTime = parseInt(savedUnlock);
+
+        // Check if unlock is still valid
+        const currentTime = Date.now();
+        const elapsed = currentTime - state.unlockTime;
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+
+        if (elapsed < twentyFourHours) {
+          // Valid unlock - activate premium
+          activatePremium();
+          startTimer();
+          state.premiumActive = true;
+          showApp();
+        } else {
+          // Expired unlock
+          deactivatePremium();
+          localStorage.removeItem('premiumUnlock');
+          state.premiumActive = false;
+          showWelcomeScreen();
+        }
+      } else {
+        // No unlock exists
+        deactivatePremium();
+        state.premiumActive = false;
+        showWelcomeScreen();
+      }
+
+      // Set up event listeners
+      elements.renewBtn.addEventListener('click', showUnlockInterface);
+      elements.startAdsBtn.addEventListener('click', startUnlockProcess);
+      
+      // Add click event listeners to all feature cards
+      elements.featureCards.forEach(card => {
+        card.addEventListener('click', handleFeatureClick);
+      });
+
+      // Update UI based on premium status
+      updateUIForPremiumStatus();
+    }
+
+    function showWelcomeScreen() {
+      elements.welcomeScreen.classList.remove("hidden");
+      elements.appContainer.style.display = 'none';
+    }
+
+    function showApp() {
+      elements.welcomeScreen.classList.add("hidden");
+      elements.appContainer.style.display = 'block';
+      
+      // Animate in the app content
+      setTimeout(() => {
+        document.querySelectorAll('.glass, .feature-card').forEach((el, index) => {
+          el.style.opacity = '0';
+          el.style.animation = `fadeIn 0.6s ease forwards ${index * 0.1}s`;
+        });
+      }, 50);
+    }
+
+    function handleFeatureClick(e) {
+      const card = e.currentTarget;
+      if (card.classList.contains('feature-disabled')) {
+        e.preventDefault();
+        showNotification('info', 'Premium Feature Locked', 'Complete the unlock process to access all tools for free for 24 hours!');
+      }
+    }
+
+    function showUnlockInterface() {
+      if (state.premiumActive) {
+        showNotification('info', 'Premium Active', 'You already have premium access!');
+        return;
+      }
+      startUnlockProcess();
+    }
+
+    function startUnlockProcess() {
+      unlockPremium();
+    }
+
+    // Unlock premium features
+    function unlockPremium() {
+      // Save unlock time
+      state.unlockTime = Date.now();
+      localStorage.setItem('premiumUnlock', state.unlockTime.toString());
+
+      // Activate premium
+      activatePremium();
+      startTimer();
+      state.premiumActive = true;
+
+      // Show success notification
+      showNotification('success', 'Premium Access Activated', 'All features unlocked for 24 hours! Enjoy your productivity tools!');
+
+      // Update UI
+      updateUIForPremiumStatus();
+
+      // Show the app interface
+      showApp();
+    }
+
+    // Activate premium features
+    function activatePremium() {
+      // Remove disabled state from all feature cards
+      elements.featureCards.forEach(card => {
+        card.classList.remove('feature-disabled');
+      });
+      
+      // Update UI state
+      elements.renewBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Renew Access';
+    }
+
+    // Deactivate premium features
+    function deactivatePremium() {
+      // Disable all feature cards except the first one
+      elements.featureCards.forEach((card, index) => {
+        if (index > 0) {
+          card.classList.add('feature-disabled');
+        }
+      });
+
+      // Update UI state
+      elements.renewBtn.innerHTML = '<i class="fas fa-lock-open"></i> Unlock Premium Features';
+
+      // Reset timer display
+      elements.hours.textContent = '00';
+      elements.minutes.textContent = '00';
+      elements.seconds.textContent = '00';
+    }
+
+    // Start the countdown timer
+    function startTimer() {
+      // Clear any existing timer
+      if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+      }
+
+      // Update timer immediately
+      updateTimer();
+
+      // Update timer every second
+      state.timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    // Update the timer display
+    function updateTimer() {
+      const currentTime = Date.now();
+      const elapsed = currentTime - state.unlockTime;
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+      const remaining = twentyFourHours - elapsed;
+
+      // If time is up
+      if (remaining <= 0) {
+        clearInterval(state.timerInterval);
+        deactivatePremium();
+        localStorage.removeItem('premiumUnlock');
+        showNotification('info', 'Premium Expired', 'Your access has expired. Complete the process to renew and continue using all features.');
+        state.premiumActive = false;
+        updateUIForPremiumStatus();
+        return;
+      }
+
+      // Calculate time components
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+      // Update display
+      elements.hours.textContent = hours.toString().padStart(2, '0');
+      elements.minutes.textContent = minutes.toString().padStart(2, '0');
+      elements.seconds.textContent = seconds.toString().padStart(2, '0');
+
+      // Update expiration time text
+      const expirationDate = new Date(state.unlockTime + twentyFourHours);
+      const expirationString = expirationDate.toLocaleString();
+      elements.expirationTime.textContent = expirationString;
+    }
+
+    // Update UI based on premium status
+    function updateUIForPremiumStatus() {
+      if (state.premiumActive) {
+        elements.accessStatus.innerHTML = '<i class="fas fa-unlock"></i> Premium Access Active';
+        elements.accessStatus.className = 'access-status';
+      } else {
+        elements.accessStatus.innerHTML = '<i class="fas fa-lock"></i> Complete Process to Unlock Features';
+        elements.accessStatus.className = 'access-status expired';
+      }
+    }
+
+    // Show notification
+    function showNotification(type, title, message) {
+      const iconMap = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        info: 'info-circle'
+      };
+
+      elements.notification.innerHTML = `
+        <i class="fas fa-${iconMap[type]}"></i>
+        <div class="notification-content">
+          <strong>${title}</strong>
+          <p>${message}</p>
+        </div>
+      `;
+
+      elements.notification.className = `notification show ${type}`;
+
+      setTimeout(() => {
+        elements.notification.classList.remove('show');
+      }, 5000);
+    }
+
+    // Initialize the app when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

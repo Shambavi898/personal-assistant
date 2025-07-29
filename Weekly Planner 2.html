@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Progressive Web App Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Theme color for address bar (Android) -->
+<meta name="theme-color" content="#ffffff">
+
+<!-- Responsive design support -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- PWA compatibility -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<!-- Google Ads IMA SDK -->
+<script async src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Offline-first weekly planner with cross-device compatibility">
+    <title>Glass Weekly Planner</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-bg: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --glass-shadow: rgba(0, 0, 0, 0.1);
+            --button-color: #7eb1e0;
+            --button-hover: #5a9bd6;
+            --text-color: #000000;
+            --header-color: #4a7eac;
+            --delete-color: #ff6b6b;
+            --edit-color: #4ecdc4;
+            --completed-color: #77dd77;
+            --glass-highlight: rgba(255, 255, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            min-height: 100vh;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-color);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .planner-container {
+            width: 100%;
+            max-width: 100%;
+            background: var(--primary-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            position: relative;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        /* Glass morphism header */
+        .planner-header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 4px 20px var(--glass-shadow);
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            transform: translateZ(20px);
+        }
+
+        .planner-header h1 {
+            color: var(--header-color);
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .date-display {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .date-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 8px 12px;
+            box-shadow: 0 4px 15px var(--glass-shadow);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            transform: translateZ(10px);
+            font-size: 0.9rem;
+        }
+
+        .date-item:hover {
+            transform: translateY(-5px) translateZ(15px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Main content with grid layout */
+        .planner-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .planner-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+                padding: 20px;
+            }
+        }
+
+        .day-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Glass morphism day cards */
+        .day-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 6px 20px var(--glass-shadow);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            transform: translateZ(10px);
+        }
+
+        .day-card:hover {
+            transform: translateY(-5px) translateZ(15px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        }
+
+        .day-card h2 {
+            color: var(--header-color);
+            margin-bottom: 12px;
+            font-size: 1.3rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .day-card h2 i {
+            font-size: 1.1rem;
+        }
+
+        .task-list {
+            list-style: none;
+        }
+
+        .task-item {
+            padding: 10px 0;
+            border-bottom: 1px dashed rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .task-item:hover {
+            background: var(--glass-highlight);
+            border-radius: 8px;
+            padding: 10px 8px;
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-checkbox {
+            margin-right: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--button-color);
+            appearance: none;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .task-checkbox:checked {
+            background: var(--completed-color);
+            border-color: var(--completed-color);
+        }
+
+        .task-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .task-text {
+            flex-grow: 1;
+            word-break: break-word;
+            padding-right: 8px;
+            font-size: 0.95rem;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .task-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .edit-btn {
+            color: var(--edit-color);
+        }
+
+        .delete-btn {
+            color: var(--delete-color);
+        }
+
+        .task-btn:hover {
+            background: rgba(0,0,0,0.05);
+            transform: scale(1.1);
+        }
+
+        .task-input-container {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .task-input {
+            flex-grow: 1;
+            padding: 10px 12px;
+            border: none;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .task-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--button-color), inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .add-btn {
+            background: var(--button-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            font-size: 0.95rem;
+        }
+
+        .add-btn:hover {
+            background: var(--button-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Glass morphism footer */
+        .planner-footer {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--glass-border);
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            transform: translateZ(20px);
+        }
+
+        .complete-button {
+            background: var(--button-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .complete-button:hover {
+            background: var(--button-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .complete-button:active {
+            transform: translateY(1px);
+        }
+
+        /* 3D effect for glass panels */
+        .day-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.05) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Exit button styling */
+        .exit-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 35px;
+            height: 35px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 20;
+            transition: all 0.3s ease;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .exit-button:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .exit-button i {
+            color: var(--header-color);
+            font-size: 1.1rem;
+        }
+
+        /* Decorative elements */
+        .decorative-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(30px);
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        .circle-1 {
+            width: 200px;
+            height: 200px;
+            background: var(--button-color);
+            top: -50px;
+            right: -50px;
+        }
+
+        .circle-2 {
+            width: 150px;
+            height: 150px;
+            background: #f8a5c2;
+            bottom: -30px;
+            left: -30px;
+        }
+
+        .circle-3 {
+            width: 180px;
+            height: 180px;
+            background: #77dd77;
+            top: 50%;
+            left: 10%;
+        }
+
+        /* Completed task styling */
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            color: #888;
+        }
+
+        /* Edit mode styling */
+        .edit-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid var(--edit-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        /* Loading indicator */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--button-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Offline notification */
+        .offline-notification {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            z-index: 1000;
+            display: none;
+            font-size: 0.9rem;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        /* Notes textarea */
+        #notes {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: none;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            resize: none;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+
+        @media (min-width: 768px) {
+            .planner-header {
+                padding: 20px;
+            }
+            
+            .planner-header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .date-display {
+                gap: 20px;
+            }
+            
+            .date-item {
+                padding: 10px 18px;
+                font-size: 1rem;
+            }
+            
+            .planner-grid {
+                padding: 25px;
+            }
+            
+            .day-card {
+                padding: 22px;
+            }
+            
+            .task-item {
+                flex-wrap: nowrap;
+            }
+            
+            .task-actions {
+                margin-left: auto;
+            }
+            
+            .exit-button {
+                top: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+            }
+            
+            #notes {
+                height: 200px;
+            }
+        }
+
+        @media (min-width: 992px) {
+            body {
+                padding: 20px;
+            }
+            
+            .planner-container {
+                max-width: 1200px;
+                border-radius: 25px;
+            }
+            
+            .planner-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .day-card h2 {
+                font-size: 1.5rem;
+            }
+            
+            .complete-button {
+                font-size: 1.2rem;
+                padding: 15px 35px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Ad Container (required for Google Ads playback) -->
+<div id="ad-slot" style="display:none;"></div>
+
+<!-- Service Worker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(() => console.log('Service Worker registered'))
+      .catch(err => console.error('Service Worker registration failed:', err));
+  }
+</script>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="offline-notification" id="offlineNotification">
+        You are currently offline. Changes will sync when you reconnect.
+    </div>
+
+    <div class="planner-container">
+        <div class="decorative-circle circle-1"></div>
+        <div class="decorative-circle circle-2"></div>
+        <div class="decorative-circle circle-3"></div>
+        
+        <a href="C:\Users\Shambavi M\Desktop\ProductivitySuite\public\index.html" class="exit-button">
+            <i class="fas fa-times"></i>
+        </a>
+        
+        <div class="planner-header">
+            <h1><i class="fas fa-calendar-alt"></i> WEEKLY PLANNER</h1>
+            <div class="date-display">
+                <div class="date-item">
+                    <span id="current-date">DATE</span>
+                </div>
+                <div class="date-item">
+                    <span id="current-day">DAY</span>
+                </div>
+                <div class="date-item">
+                    <span id="current-week">WEEK</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="planner-grid">
+            <div class="day-column">
+                <div class="day-card" id="monday">
+                    <h2><i class="fas fa-coffee"></i> MONDAY</h2>
+                    <ul class="task-list" data-day="monday">
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Morning meeting with team</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Project deadline review</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Client presentation prep</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="task-input-container">
+                        <input type="text" class="task-input" placeholder="Add new task..." data-day="monday">
+                        <button class="add-btn">Add</button>
+                    </div>
+                </div>
+                
+                <div class="day-card" id="wednesday">
+                    <h2><i class="fas fa-lightbulb"></i> WEDNESDAY</h2>
+                    <ul class="task-list" data-day="wednesday">
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Team brainstorming session</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Progress report analysis</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Review marketing strategy</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="task-input-container">
+                        <input type="text" class="task-input" placeholder="Add new task..." data-day="wednesday">
+                        <button class="add-btn">Add</button>
+                    </div>
+                </div>
+                
+                <div class="day-card" id="friday">
+                    <h2><i class="fas fa-chart-line"></i> FRIDAY</h2>
+                    <ul class="task-list" data-day="friday">
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Weekly project review</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Team building activity</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Plan next week's schedule</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="task-input-container">
+                        <input type="text" class="task-input" placeholder="Add new task..." data-day="friday">
+                        <button class="add-btn">Add</button>
+                    </div>
+                </div>
+                
+                <div class="day-card" id="sunday">
+                    <h2><i class="fas fa-cloud-sun"></i> SUNDAY</h2>
+                    <ul class="task-list" data-day="sunday">
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Weekly reflection time</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Plan meals for the week</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Prepare for upcoming week</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="task-input-container">
+                        <input type="text" class="task-input" placeholder="Add new task..." data-day="sunday">
+                        <button class="add-btn">Add</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="day-column">
+                <div class="day-card" id="tuesday">
+                    <h2><i class="fas fa-briefcase"></i> TUESDAY</h2>
+                    <ul class="task-list" data-day="tuesday">
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Client presentation</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Budget review meeting</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Research new tools</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="task-input-container">
+                        <input type="text" class="task-input" placeholder="Add new task..." data-day="tuesday">
+                        <button class="add-btn">Add</button>
+                    </div>
+                </div>
+                
+                <div class="day-card" id="thursday">
+                    <h2><i class="fas fa-chalkboard-teacher"></i> THURSDAY</h2>
+                    <ul class="task-list" data-day="thursday">
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Departmental meeting</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Project milestone check</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Training session</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="task-input-container">
+                        <input type="text" class="task-input" placeholder="Add new task..." data-day="thursday">
+                        <button class="add-btn">Add</button>
+                    </div>
+                </div>
+                
+                <div class="day-card" id="saturday">
+                    <h2><i class="fas fa-heart"></i> SATURDAY</h2>
+                    <ul class="task-list" data-day="saturday">
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Personal development</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Family time</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="task-item">
+                            <input type="checkbox" class="task-checkbox">
+                            <span class="task-text">Recharge and relax</span>
+                            <div class="task-actions">
+                                <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="task-input-container">
+                        <input type="text" class="task-input" placeholder="Add new task..." data-day="saturday">
+                        <button class="add-btn">Add</button>
+                    </div>
+                </div>
+                
+                <div class="day-card">
+                    <h2><i class="fas fa-sticky-note"></i> NOTES</h2>
+                    <textarea id="notes" placeholder="Write your weekly notes here..."></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="planner-footer">
+            <button class="complete-button">GOALS COMPLETE</button>
+        </div>
+    </div>
+
+    <script>
+        // Simplified and optimized version without IndexedDB for immediate functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading overlay immediately since we're not using async IndexedDB
+            document.getElementById('loadingOverlay').style.display = 'none';
+            
+            // Update date information
+            const updateDateInfo = () => {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                const dayStr = now.toLocaleDateString('en-US', { weekday: 'long' });
+                
+                // Calculate week number
+                const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
+                const pastDaysOfYear = (now - firstDayOfYear) / 86400000;
+                const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+                
+                document.getElementById('current-date').textContent = dateStr;
+                document.getElementById('current-day').textContent = dayStr;
+                document.getElementById('current-week').textContent = `WEEK ${weekNumber}`;
+            };
+            
+            updateDateInfo();
+            
+            // Task Management Functions
+            const saveTasksToLocalStorage = () => {
+                const tasks = {};
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                
+                days.forEach(day => {
+                    const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+                    if (taskList) {
+                        const taskItems = taskList.querySelectorAll('.task-item');
+                        tasks[day] = [];
+                        
+                        taskItems.forEach(item => {
+                            const text = item.querySelector('.task-text').textContent;
+                            const completed = item.querySelector('.task-checkbox').checked;
+                            tasks[day].push({ text, completed });
+                        });
+                    }
+                });
+                
+                // Save notes
+                const notes = document.getElementById('notes').value;
+                localStorage.setItem('weeklyPlannerNotes', notes);
+                
+                localStorage.setItem('weeklyPlannerTasks', JSON.stringify(tasks));
+            };
+            
+            const loadTasksFromLocalStorage = () => {
+                const savedTasks = localStorage.getItem('weeklyPlannerTasks');
+                const savedNotes = localStorage.getItem('weeklyPlannerNotes');
+                
+                if (savedTasks) {
+                    const tasks = JSON.parse(savedTasks);
+                    
+                    for (const day in tasks) {
+                        const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+                        if (taskList) {
+                            taskList.innerHTML = '';
+                            
+                            tasks[day].forEach(task => {
+                                const taskItem = document.createElement('li');
+                                taskItem.className = 'task-item';
+                                if (task.completed) {
+                                    taskItem.classList.add('completed');
+                                }
+                                
+                                taskItem.innerHTML = `
+                                    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+                                    <span class="task-text">${task.text}</span>
+                                    <div class="task-actions">
+                                        <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                                        <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                `;
+                                taskList.appendChild(taskItem);
+                                attachTaskListeners(taskItem);
+                            });
+                        }
+                    }
+                }
+                
+                if (savedNotes) {
+                    document.getElementById('notes').value = savedNotes;
+                }
+            };
+            
+            // Add task functionality
+            const addTask = (inputElement) => {
+                if (inputElement.value.trim() !== '') {
+                    const day = inputElement.dataset.day;
+                    const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+                    
+                    const taskItem = document.createElement('li');
+                    taskItem.className = 'task-item';
+                    taskItem.innerHTML = `
+                        <input type="checkbox" class="task-checkbox">
+                        <span class="task-text">${inputElement.value}</span>
+                        <div class="task-actions">
+                            <button class="task-btn edit-btn"><i class="fas fa-edit"></i></button>
+                            <button class="task-btn delete-btn"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    taskList.appendChild(taskItem);
+                    
+                    // Attach event listeners to the new task
+                    attachTaskListeners(taskItem);
+                    
+                    inputElement.value = '';
+                    saveTasksToLocalStorage();
+                }
+            };
+            
+            // Attach event listeners to a task item
+            const attachTaskListeners = (taskItem) => {
+                // Checkbox functionality
+                const checkbox = taskItem.querySelector('.task-checkbox');
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        taskItem.classList.add('completed');
+                    } else {
+                        taskItem.classList.remove('completed');
+                    }
+                    saveTasksToLocalStorage();
+                });
+                
+                // Edit functionality
+                const editBtn = taskItem.querySelector('.edit-btn');
+                const taskText = taskItem.querySelector('.task-text');
+                
+                editBtn.addEventListener('click', function() {
+                    const originalText = taskText.textContent;
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = originalText;
+                    input.className = 'edit-input';
+                    
+                    taskText.replaceWith(input);
+                    input.focus();
+                    
+                    input.addEventListener('blur', function() {
+                        const newText = this.value.trim() || originalText;
+                        taskText.textContent = newText;
+                        input.replaceWith(taskText);
+                        saveTasksToLocalStorage();
+                    });
+                    
+                    input.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            const newText = this.value.trim() || originalText;
+                            taskText.textContent = newText;
+                            input.replaceWith(taskText);
+                            saveTasksToLocalStorage();
+                        }
+                    });
+                });
+                
+                // Delete functionality
+                const deleteBtn = taskItem.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', function() {
+                    taskItem.remove();
+                    saveTasksToLocalStorage();
+                });
+            };
+            
+            // Initialize task listeners
+            const initializeTaskListeners = () => {
+                document.querySelectorAll('.task-item').forEach(taskItem => {
+                    attachTaskListeners(taskItem);
+                });
+                
+                // Add task buttons
+                document.querySelectorAll('.add-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const inputElement = this.previousElementSibling;
+                        addTask(inputElement);
+                    });
+                });
+                
+                // Add task on Enter key
+                document.querySelectorAll('.task-input').forEach(input => {
+                    input.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            addTask(this);
+                        }
+                    });
+                });
+                
+                // Notes autosave
+                document.getElementById('notes').addEventListener('input', () => {
+                    saveTasksToLocalStorage();
+                });
+            };
+            
+            // Checkbox functionality for initial tasks
+            document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const taskItem = this.closest('.task-item');
+                    if (this.checked) {
+                        taskItem.classList.add('completed');
+                    } else {
+                        taskItem.classList.remove('completed');
+                    }
+                    saveTasksToLocalStorage();
+                });
+            });
+            
+            // Goals Complete button functionality
+            document.querySelector('.complete-button').addEventListener('click', function() {
+                const completedTasks = document.querySelectorAll('.task-checkbox:checked').length;
+                const totalTasks = document.querySelectorAll('.task-checkbox').length;
+                const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                
+                let message = '';
+                if (completionPercentage === 100) {
+                    message = 'Amazing! You completed all your goals! 🎉';
+                } else if (completionPercentage >= 75) {
+                    message = `Great job! You completed ${completionPercentage}% of your goals! 👍`;
+                } else if (completionPercentage >= 50) {
+                    message = `Good progress! You completed ${completionPercentage}% of your goals. 💪`;
+                } else {
+                    message = `You've completed ${completionPercentage}% of your goals. Keep going! 👏`;
+                }
+                
+                alert(message);
+                
+                // Visual feedback
+                const originalText = this.textContent;
+                const originalBg = this.style.backgroundColor;
+                
+                this.textContent = 'GOALS COMPLETED!';
+                this.style.backgroundColor = '#4CAF50';
+                
+                setTimeout(() => {
+                    this.textContent = originalText;
+                    this.style.backgroundColor = originalBg;
+                }, 3000);
+            });
+            
+            // Load initial data and set up listeners
+            loadTasksFromLocalStorage();
+            initializeTaskListeners();
+            
+            // Auto-save every 30 seconds
+            setInterval(saveTasksToLocalStorage, 30000);
+        });
+    </script>
+</body>
+</html>

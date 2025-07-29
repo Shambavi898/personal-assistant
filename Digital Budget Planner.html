@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Glass Morphism Budget Planner</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+<!-- Progressive Web App Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Theme color for address bar (Android) -->
+<meta name="theme-color" content="#ffffff">
+
+<!-- Responsive design support -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PWA compatibility -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<!-- Google Ads IMA SDK -->
+<script async src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
+
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0e7ff, #d1d9ff, #c2cbff);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            color: #1e293b;
+            touch-action: manipulation;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            min-height: 90vh;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.15),
+                0 4px 20px rgba(255, 255, 255, 0.5) inset;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            position: relative;
+            transform: perspective(1000px) rotateX(1deg);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .container:hover {
+            transform: perspective(1000px) rotateX(0.5deg) translateY(-10px);
+            box-shadow:
+                0 25px 70px rgba(0, 0, 0, 0.2),
+                0 4px 20px rgba(255, 255, 255, 0.6) inset;
+        }
+
+        /* Glass panels */
+        .card, .history-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow:
+                0 8px 32px rgba(31, 38, 135, 0.1),
+                0 4px 12px rgba(255, 255, 255, 0.5) inset;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+        }
+
+        .card::before, .history-panel::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(45deg,
+                rgba(255,255,255,0.5),
+                rgba(255,255,255,0.2),
+                rgba(255,255,255,0.1));
+            border-radius: 18px;
+            z-index: -1;
+        }
+
+        .card:hover, .history-panel:hover {
+            transform: translateY(-5px) scale(1.005);
+            box-shadow:
+                0 12px 40px rgba(31, 38, 135, 0.15),
+                0 4px 20px rgba(255, 255, 255, 0.7) inset;
+        }
+
+        /* Buttons */
+        .add-row-btn, .action-btn:not(.exit):not(.reset) {
+            background: linear-gradient(135deg, #a0c4ff, #bdb2ff);
+            color: #1e293b;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow:
+                0 4px 15px rgba(160, 196, 255, 0.3),
+                0 2px 4px rgba(255, 255, 255, 0.5) inset;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .add-row-btn::after, .action-btn:not(.exit):not(.reset)::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.4),
+                transparent);
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        .add-row-btn:hover, .action-btn:not(.exit):not(.reset):hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 8px 25px rgba(160, 196, 255, 0.4),
+                0 2px 4px rgba(255, 255, 255, 0.6) inset;
+        }
+
+        /* Exit button */
+        .exit-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4f46e5;
+            text-decoration: none;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-shadow:
+                0 2px 5px rgba(0, 0, 0, 0.1),
+                0 1px 2px rgba(255, 255, 255, 0.5) inset;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .exit-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1) rotate(15deg);
+            box-shadow:
+                0 4px 10px rgba(0, 0, 0, 0.15),
+                0 1px 2px rgba(255, 255, 255, 0.7) inset;
+        }
+
+        /* Header Styles */
+        .app-header {
+            padding: 20px 15px;
+            background: linear-gradient(to right, #4f46e5, #6366f1);
+            color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(10px);
+            box-shadow:
+                0 4px 20px rgba(0, 0, 0, 0.05),
+                0 2px 4px rgba(255, 255, 255, 0.2) inset;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .app-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .app-title i {
+            font-size: 28px;
+            color: white;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.1));
+        }
+
+        .app-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            letter-spacing: 0.5px;
+        }
+
+        .month-selector {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .month-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow:
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                0 1px 2px rgba(255, 255, 255, 0.3) inset;
+        }
+
+        .month-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1) rotate(5deg);
+            box-shadow:
+                0 3px 6px rgba(0, 0, 0, 0.15),
+                0 1px 2px rgba(255, 255, 255, 0.4) inset;
+        }
+
+        .month-display {
+            font-size: 18px;
+            font-weight: 600;
+            min-width: 160px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Currency Selector */
+        .currency-selector {
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex-direction: column;
+        }
+
+        .currency-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        #currency-select {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            width: 100%;
+            max-width: 200px;
+            box-shadow:
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                0 1px 2px rgba(255, 255, 255, 0.3) inset;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        #currency-select:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        #currency-select:focus {
+            outline: none;
+            box-shadow:
+                0 0 0 3px rgba(255, 255, 255, 0.3),
+                0 1px 2px rgba(255, 255, 255, 0.4) inset;
+        }
+
+        #currency-select option {
+            background: #4f46e5;
+            color: white;
+        }
+
+        /* Content Container */
+        .content-container {
+            flex: 1;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(238, 242, 255, 0.5);
+        }
+
+        .card-header h2 {
+            font-size: 18px;
+            color: #4f46e5;
+            font-weight: 600;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.05);
+        }
+
+        .card-header .total {
+            font-size: 16px;
+            font-weight: 700;
+            color: #4f46e5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow:
+                0 4px 10px rgba(0, 0, 0, 0.03),
+                0 1px 2px rgba(255, 255, 255, 0.5) inset;
+        }
+
+        th {
+            background-color: rgba(240, 244, 255, 0.7);
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            color: #4f46e5;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 10px 12px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.05) inset;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow:
+                0 0 0 3px rgba(99, 102, 241, 0.2),
+                0 1px 2px rgba(0, 0, 0, 0.05) inset;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .delete-row {
+            background: #fee2e2;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #ef4444;
+            transition: all 0.2s ease;
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.05),
+                0 1px 1px rgba(255, 255, 255, 0.3) inset;
+        }
+
+        .delete-row:hover {
+            background: #fecaca;
+            transform: scale(1.05) rotate(5deg);
+            box-shadow:
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                0 1px 1px rgba(255, 255, 255, 0.4) inset;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow:
+                0 5px 15px rgba(0, 0, 0, 0.05),
+                0 2px 4px rgba(255, 255, 255, 0.5) inset;
+            border: 2px solid rgba(238, 242, 255, 0.5);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            transform: translateZ(0);
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow:
+                0 8px 25px rgba(0, 0, 0, 0.1),
+                0 2px 4px rgba(255, 255, 255, 0.6) inset;
+        }
+
+        .summary-card h3 {
+            font-size: 16px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .summary-value {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .total-budget {
+            color: #10b981;
+        }
+
+        .total-spent {
+            color: #ef4444;
+        }
+
+        .remaining-budget {
+            color: #3b82f6;
+        }
+
+        .overspent {
+            color: #ef4444;
+        }
+
+        .progress-container {
+            margin-top: 10px;
+            height: 8px;
+            background: rgba(226, 232, 240, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.05) inset;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(to right, #10b981, #3b82f6);
+            transition: width 0.5s ease;
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar.overspent {
+            background: linear-gradient(to right, #ef4444, #f97316);
+        }
+
+        /* Notes Section */
+        .notes-section {
+            margin-top: 15px;
+        }
+
+        .notes-section textarea {
+            width: 100%;
+            height: 80px;
+            padding: 12px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            resize: none;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, 0.05) inset;
+            backdrop-filter: blur(3px);
+        }
+
+        .notes-section textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow:
+                0 0 0 3px rgba(99, 102, 241, 0.2),
+                0 1px 3px rgba(0, 0, 0, 0.05) inset;
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            padding: 0 15px 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 10px 15px;
+            color: #1e293b;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 120px;
+            justify-content: center;
+            box-shadow:
+                0 5px 15px rgba(0, 0, 0, 0.1),
+                0 2px 4px rgba(255, 255, 255, 0.5) inset;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg,
+                rgba(255,255,255,0.4),
+                transparent);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 8px 20px rgba(0, 0, 0, 0.15),
+                0 2px 4px rgba(255, 255, 255, 0.6) inset;
+        }
+
+        .action-btn.exit {
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+        }
+
+        .action-btn.exit:hover {
+            background: linear-gradient(135deg, #ff7c82, #f8c3b4);
+        }
+
+        .action-btn.reset {
+            background: linear-gradient(135deg, #d4d4d4, #f5f7fa);
+        }
+
+        .action-btn.reset:hover {
+            background: linear-gradient(135deg, #c5c5c5, #eef2f7);
+        }
+
+        .action-btn.export {
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+        }
+
+        .action-btn.export:hover {
+            background: linear-gradient(135deg, #34d399, #2563eb);
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow:
+                0 5px 15px rgba(0, 0, 0, 0.2),
+                0 2px 4px rgba(255, 255, 255, 0.1) inset;
+            backdrop-filter: blur(5px);
+            max-width: 90%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Month History Panel */
+        .history-panel {
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .history-panel h3 {
+            font-size: 16px;
+            color: #4f46e5;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(238, 242, 255, 0.5);
+        }
+
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .history-item {
+            background: rgba(238, 242, 255, 0.7);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, 0.05),
+                0 1px 1px rgba(255, 255, 255, 0.3) inset;
+            backdrop-filter: blur(2px);
+        }
+
+        .history-item:hover {
+            background: rgba(199, 210, 254, 0.7);
+            transform: translateY(-2px);
+            box-shadow:
+                0 2px 5px rgba(0, 0, 0, 0.1),
+                0 1px 1px rgba(255, 255, 255, 0.4) inset;
+        }
+
+        .history-item.active {
+            background: #4f46e5;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Performance indicators */
+        .performance-indicator {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 20px;
+            font-size: 11px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Add row buttons */
+        .add-row-btn {
+            padding: 10px 15px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .app-header {
+                padding: 15px 10px;
+            }
+            
+            .app-title h1 {
+                font-size: 20px;
+            }
+            
+            .month-display {
+                font-size: 16px;
+                min-width: 140px;
+            }
+            
+            .month-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+            
+            .card-header h2 {
+                font-size: 16px;
+            }
+            
+            .card-header .total {
+                font-size: 14px;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            input[type="text"],
+            input[type="number"],
+            select {
+                padding: 7px 9px;
+                font-size: 13px;
+            }
+            
+            .currency-selector {
+                flex-direction: column;
+                gap: 6px;
+            }
+            
+            #currency-select {
+                width: 100%;
+                max-width: 180px;
+                font-size: 13px;
+            }
+            
+            .exit-btn {
+                width: 30px;
+                height: 30px;
+                font-size: 14px;
+            }
+            
+            .summary-value {
+                font-size: 20px;
+            }
+            
+            .action-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-width: 100px;
+            }
+            
+            .summary-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .history-item {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+            
+            .notes-section textarea {
+                height: 70px;
+                font-size: 13px;
+                padding: 10px;
+            }
+            
+            .content-container {
+                padding: 12px;
+                gap: 12px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .toast {
+                font-size: 13px;
+                padding: 10px 20px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .app-title h1 {
+                font-size: 18px;
+            }
+            
+            .month-display {
+                font-size: 15px;
+                min-width: 130px;
+            }
+            
+            .action-btn {
+                min-width: 90px;
+                font-size: 12px;
+            }
+            
+            .summary-card h3 {
+                font-size: 15px;
+            }
+            
+            .summary-value {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Ad Container (required for Google Ads playback) -->
+<div id="ad-slot" style="display:none;"></div>
+
+<!-- Service Worker Registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(() => console.log('Service Worker registered'))
+      .catch(err => console.error('Service Worker registration failed:', err));
+  }
+</script>
+
+    <div class="container">
+        <!-- Exit button -->
+        <a href="C:\Users\Shambavi M\Desktop\ProductivitySuite\public\index.html" class="exit-btn">
+            <i class="fas fa-home"></i>
+        </a>
+        
+        
+        
+        <header class="app-header">
+            <div class="app-title">
+                <i class="fas fa-chart-pie"></i>
+                <h1>Budget Planner</h1>
+            </div>
+            <div class="month-selector">
+                <button class="month-btn" id="prev-month">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="month-display" id="current-month">June 2025</div>
+                <button class="month-btn" id="next-month">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="currency-selector">
+                <div class="currency-label">Currency:</div>
+                <select id="currency-select">
+                    <option value="USD">USD - United States Dollar ($)</option>
+                    <option value="EUR">EUR - Euro (€)</option>
+                    <option value="GBP">GBP - British Pound (£)</option>
+                    <option value="JPY">JPY - Japanese Yen (¥)</option>
+                    <option value="INR">INR - Indian Rupee (₹)</option>
+                    <option value="CAD">CAD - Canadian Dollar (C$)</option>
+                    <option value="AUD">AUD - Australian Dollar (A$)</option>
+                    <option value="CHF">CHF - Swiss Franc (₣)</option>
+                    <option value="CNY">CNY - Chinese Yuan (¥)</option>
+                    <option value="BRL">BRL - Brazilian Real (R$)</option>
+                    <option value="MXN">MXN - Mexican Peso ($)</option>
+                    <option value="RUB">RUB - Russian Ruble (₽)</option>
+                    <option value="KRW">KRW - South Korean Won (₩)</option>
+                    <option value="TRY">TRY - Turkish Lira (₺)</option>
+                    <option value="SGD">SGD - Singapore Dollar (S$)</option>
+                    <option value="NZD">NZD - New Zealand Dollar (NZ$)</option>
+                    <option value="THB">THB - Thai Baht (฿)</option>
+                    <option value="HKD">HKD - Hong Kong Dollar (HK$)</option>
+                    <option value="SEK">SEK - Swedish Krona (kr)</option>
+                    <option value="NOK">NOK - Norwegian Krone (kr)</option>
+                    <option value="DKK">DKK - Danish Krone (kr)</option>
+                    <option value="ZAR">ZAR - South African Rand (R)</option>
+                    <option value="PLN">PLN - Polish Złoty (zł)</option>
+                    <option value="PHP">PHP - Philippine Peso (₱)</option>
+                    <option value="IDR">IDR - Indonesian Rupiah (Rp)</option>
+                    <option value="CZK">CZK - Czech Koruna (Kč)</option>
+                    <option value="HUF">HUF - Hungarian Forint (Ft)</option>
+                    <option value="ILS">ILS - Israeli Shekel (₪)</option>
+                    <option value="CLP">CLP - Chilean Peso ($)</option>
+                    <option value="AED">AED - UAE Dirham (د.إ)</option>
+                    <option value="COP">COP - Colombian Peso ($)</option>
+                    <option value="SAR">SAR - Saudi Riyal (ر.س)</option>
+                    <option value="MYR">MYR - Malaysian Ringgit (RM)</option>
+                    <option value="RON">RON - Romanian Leu (lei)</option>
+                    <option value="BGN">BGN - Bulgarian Lev (лв)</option>
+                    <option value="VND">VND - Vietnamese Đồng (₫)</option>
+                    <option value="UAH">UAH - Ukrainian Hryvnia (₴)</option>
+                    <option value="BDT">BDT - Bangladeshi Taka (৳)</option>
+                    <option value="PKR">PKR - Pakistani Rupee (₨)</option>
+                    <option value="EGP">EGP - Egyptian Pound (£)</option>
+                    <option value="MAD">MAD - Moroccan Dirham (د.م.)</option>
+                </select>
+            </div>
+        </header>
+        
+        <div class="content-container">
+            <div class="history-panel">
+                <h3>Budget History</h3>
+                <div class="history-list" id="history-list">
+                    <!-- Month history will be populated here -->
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Budget</h2>
+                    <div class="total">Total: <span id="budget-total">0.00</span></div>
+                </div>
+                
+                <table class="budget-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Budget Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="budget-body">
+                        <tr>
+                            <td>
+                                <select class="category-select">
+                                    <option value="">Select Category</option>
+                                    <option value="Housing">Housing</option>
+                                    <option value="Transportation">Transportation</option>
+                                    <option value="Food">Food</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Entertainment">Entertainment</option>
+                                    <option value="Healthcare">Healthcare</option>
+                                    <option value="Savings">Savings</option>
+                                    <option value="Personal">Personal</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </td>
+                            <td><input type="text" placeholder="Description" class="budget-desc"></td>
+                            <td><input type="number" placeholder="0.00" class="budget-amount" min="0" step="0.01" value="0"></td>
+                            <td><button class="delete-row"><i class="fas fa-trash"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button class="add-row-btn" id="add-budget-row">
+                    <i class="fas fa-plus"></i> Add Budget Category
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Expenses</h2>
+                    <div class="total">Total: <span id="expenses-total">0.00</span></div>
+                </div>
+                
+                <table class="expenses-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Amount Spent</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenses-body">
+                        <tr>
+                            <td>
+                                <select class="category-select">
+                                    <option value="">Select Category</option>
+                                    <option value="Housing">Housing</option>
+                                    <option value="Transportation">Transportation</option>
+                                    <option value="Food">Food</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Entertainment">Entertainment</option>
+                                    <option value="Healthcare">Healthcare</option>
+                                    <option value="Personal">Personal</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </td>
+                            <td><input type="text" placeholder="Description" class="expense-desc"></td>
+                            <td><input type="number" placeholder="0.00" class="expense-amount" min="0" step="0.01" value="0"></td>
+                            <td><button class="delete-row"><i class="fas fa-trash"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button class="add-row-btn" id="add-expense-row">
+                    <i class="fas fa-plus"></i> Add Expense
+                </button>
+            </div>
+            
+            <div class="summary-section">
+                <div class="summary-card">
+                    <h3>Total Budget</h3>
+                    <div class="summary-value total-budget" id="total-budget">0.00</div>
+                </div>
+                
+                <div class="summary-card">
+                    <h3>Total Spent</h3>
+                    <div class="summary-value total-spent" id="total-spent">0.00</div>
+                </div>
+                
+                <div class="summary-card">
+                    <h3 id="remaining-label">Remaining Budget</h3>
+                    <div class="summary-value remaining-budget" id="remaining-value">0.00</div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="budget-progress" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="notes-section">
+                <h3>Notes</h3>
+                <textarea placeholder="Enter your budget notes, goals, or observations here..." id="budget-notes"></textarea>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="action-btn" id="save-btn">
+                <i class="fas fa-save"></i> Save Budget
+            </button>
+            <button class="action-btn export" id="export-btn">
+                <i class="fas fa-file-pdf"></i> Export to PDF
+            </button>
+            <button class="action-btn reset" id="reset-btn">
+                <i class="fas fa-redo"></i> Reset Current Month
+            </button>
+            <button class="action-btn exit" id="exit-btn">
+                <i class="fas fa-home"></i> Exit to Home
+            </button>
+            <button class="action-btn reset" id="clear-history-btn">
+                <i class="fas fa-trash-alt"></i> Clear All History
+            </button>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-message">Budget saved successfully!</span>
+    </div>
+    
+    <script>
+        // Initialize jsPDF
+        const { jsPDF } = window.jspdf;
+        
+        // Performance monitoring
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        
+        function monitorPerformance() {
+            const now = performance.now();
+            const delta = now - lastFrameTime;
+            frameCount++;
+            
+            if (delta >= 1000) {
+                const fps = Math.round((frameCount * 1000) / delta);
+                const statusEl = document.getElementById('perf-status');
+                
+                if (fps > 55) {
+                    statusEl.textContent = `Performance: Excellent (${fps} FPS)`;
+                    statusEl.style.color = '#10b981';
+                } else if (fps > 45) {
+                    statusEl.textContent = `Performance: Good (${fps} FPS)`;
+                    statusEl.style.color = '#3b82f6';
+                } else if (fps > 30) {
+                    statusEl.textContent = `Performance: Fair (${fps} FPS)`;
+                    statusEl.style.color = '#f59e0b';
+                } else {
+                    statusEl.textContent = `Performance: Poor (${fps} FPS)`;
+                    statusEl.style.color = '#ef4444';
+                }
+                
+                frameCount = 0;
+                lastFrameTime = now;
+            }
+            
+            requestAnimationFrame(monitorPerformance);
+        }
+        
+        // Months data
+        const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        
+        // Set to June 2025 as current date
+        let currentMonth = 5; // June is 5
+        let currentYear = 2025;
+        
+        // Currency settings
+        let currentCurrency = 'USD';
+        const currencySymbols = {
+            USD: '$',
+            EUR: '€',
+            GBP: '£',
+            JPY: '¥',
+            INR: '₹',
+            CAD: 'C$',
+            AUD: 'A$',
+            CHF: '₣',
+            CNY: '¥',
+            BRL: 'R$',
+            MXN: '$',
+            RUB: '₽',
+            KRW: '₩',
+            TRY: '₺',
+            SGD: 'S$',
+            NZD: 'NZ$',
+            THB: '฿',
+            HKD: 'HK$',
+            SEK: 'kr',
+            NOK: 'kr',
+            DKK: 'kr',
+            ZAR: 'R',
+            PLN: 'zł',
+            PHP: '₱',
+            IDR: 'Rp',
+            CZK: 'Kč',
+            HUF: 'Ft',
+            ILS: '₪',
+            CLP: '$',
+            AED: 'د.إ',
+            COP: '$',
+            SAR: 'ر.س',
+            MYR: 'RM',
+            RON: 'lei',
+            BGN: 'лв',
+            VND: '₫',
+            UAH: '₴',
+            BDT: '৳',
+            PKR: '₨',
+            EGP: '£',
+            MAD: 'د.م.'
+        };
+        
+        // DOM Elements
+        const monthDisplay = document.getElementById('current-month');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const saveBtn = document.getElementById('save-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const exitBtn = document.getElementById('exit-btn');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+        const budgetBody = document.getElementById('budget-body');
+        const expensesBody = document.getElementById('expenses-body');
+        const addBudgetRowBtn = document.getElementById('add-budget-row');
+        const addExpenseRowBtn = document.getElementById('add-expense-row');
+        const historyList = document.getElementById('history-list');
+        const budgetNotes = document.getElementById('budget-notes');
+        const remainingLabel = document.getElementById('remaining-label');
+        const remainingValue = document.getElementById('remaining-value');
+        const currencySelect = document.getElementById('currency-select');
+        
+        // Initialize the app
+        function initApp() {
+            loadCurrency();
+            updateMonthDisplay();
+            loadMonthHistory();
+            loadData();
+            attachEventListeners();
+            calculateTotals();
+            monitorPerformance();
+        }
+        
+        // Generate storage key for current month
+        function getStorageKey() {
+            return `budgetPlanner_${currentYear}_${currentMonth}`;
+        }
+        
+        // Format currency value with symbol
+        function formatCurrencyValue(amount) {
+            // Safeguard against NaN values
+            const value = isNaN(amount) ? 0 : amount;
+            const symbol = currencySymbols[currentCurrency] || '$';
+            return `${symbol}${value.toFixed(2)}`;
+        }
+        
+        // Load currency from localStorage
+        function loadCurrency() {
+            const savedCurrency = localStorage.getItem('budgetPlanner_currency');
+            if (savedCurrency) {
+                currentCurrency = savedCurrency;
+                currencySelect.value = currentCurrency;
+            }
+        }
+        
+        // Save currency to localStorage
+        function saveCurrency(currency) {
+            currentCurrency = currency;
+            localStorage.setItem('budgetPlanner_currency', currency);
+            calculateTotals(); // Refresh the display
+            showToast(`Currency changed to ${currentCurrency}`);
+        }
+        
+        // Update month display
+        function updateMonthDisplay() {
+            monthDisplay.textContent = `${months[currentMonth]} ${currentYear}`;
+        }
+        
+        // Create a budget row
+        function createBudgetRow() {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <select class="category-select">
+                        <option value="">Select Category</option>
+                        <option value="Housing">Housing</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Food">Food</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Savings">Savings</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </td>
+                <td><input type="text" placeholder="Description" class="budget-desc"></td>
+                <td><input type="number" placeholder="0.00" class="budget-amount" min="0" step="0.01" value="0"></td>
+                <td><button class="delete-row"><i class="fas fa-trash"></i></button></td>
+            `;
+            return row;
+        }
+        
+        // Create an expense row
+        function createExpenseRow() {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <select class="category-select">
+                        <option value="">Select Category</option>
+                        <option value="Housing">Housing</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Food">Food</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </td>
+                <td><input type="text" placeholder="Description" class="expense-desc"></td>
+                <td><input type="number" placeholder="0.00" class="expense-amount" min="0" step="0.01" value="0"></td>
+                <td><button class="delete-row"><i class="fas fa-trash"></i></button></td>
+            `;
+            return row;
+        }
+        
+        // Calculate totals
+        function calculateTotals() {
+            let totalBudget = 0;
+            let totalExpenses = 0;
+            
+            // Calculate budget total
+            const budgetRows = budgetBody.querySelectorAll('tr');
+            budgetRows.forEach(row => {
+                const amountInput = row.querySelector('.budget-amount');
+                if (amountInput && amountInput.value) {
+                    const value = parseFloat(amountInput.value);
+                    totalBudget += isNaN(value) ? 0 : value;
+                }
+            });
+            
+            // Calculate expenses total
+            const expenseRows = expensesBody.querySelectorAll('tr');
+            expenseRows.forEach(row => {
+                const amountInput = row.querySelector('.expense-amount');
+                if (amountInput && amountInput.value) {
+                    const value = parseFloat(amountInput.value);
+                    totalExpenses += isNaN(value) ? 0 : value;
+                }
+            });
+            
+            // Calculate remaining budget
+            const remainingBudget = totalBudget - totalExpenses;
+            
+            // Update display with formatted currency
+            document.getElementById('budget-total').textContent = formatCurrencyValue(totalBudget);
+            document.getElementById('expenses-total').textContent = formatCurrencyValue(totalExpenses);
+            document.getElementById('total-budget').textContent = formatCurrencyValue(totalBudget);
+            document.getElementById('total-spent').textContent = formatCurrencyValue(totalExpenses);
+            document.getElementById('remaining-value').textContent = formatCurrencyValue(Math.abs(remainingBudget));
+            
+            // Update progress bar
+            const progressPercent = totalBudget > 0 ?
+                Math.min(100, (totalExpenses / totalBudget) * 100) : 0;
+            document.getElementById('budget-progress').style.width = `${progressPercent}%`;
+            
+            // Change progress bar color based on usage
+            const progressBar = document.getElementById('budget-progress');
+            if (progressPercent > 90) {
+                progressBar.style.background = 'linear-gradient(to right, #ef4444, #f97316)';
+            } else if (progressPercent > 75) {
+                progressBar.style.background = 'linear-gradient(to right, #f97316, #eab308)';
+            } else {
+                progressBar.style.background = 'linear-gradient(to right, #10b981, #3b82f6)';
+            }
+            
+            // Update remaining budget label and color
+            if (remainingBudget < 0) {
+                remainingLabel.textContent = 'Overspent';
+                remainingValue.classList.remove('remaining-budget');
+                remainingValue.classList.add('overspent');
+                progressBar.classList.add('overspent');
+            } else {
+                remainingLabel.textContent = 'Remaining Budget';
+                remainingValue.classList.remove('overspent');
+                remainingValue.classList.add('remaining-budget');
+                progressBar.classList.remove('overspent');
+            }
+        }
+        
+        // Save data for current month
+        function saveData() {
+            const budgetData = [];
+            const expenseData = [];
+            const notes = document.getElementById('budget-notes').value;
+            
+            // Get budget data
+            const budgetRows = budgetBody.querySelectorAll('tr');
+            budgetRows.forEach(row => {
+                const category = row.querySelector('.category-select').value;
+                const description = row.querySelector('.budget-desc').value;
+                const amount = row.querySelector('.budget-amount').value;
+                
+                if (category && amount) {
+                    budgetData.push({
+                        category,
+                        description,
+                        amount: parseFloat(amount) || 0
+                    });
+                }
+            });
+            
+            // Get expense data
+            const expenseRows = expensesBody.querySelectorAll('tr');
+            expenseRows.forEach(row => {
+                const category = row.querySelector('.category-select').value;
+                const description = row.querySelector('.expense-desc').value;
+                const amount = row.querySelector('.expense-amount').value;
+                
+                if (category && amount) {
+                    expenseData.push({
+                        category,
+                        description,
+                        amount: parseFloat(amount) || 0
+                    });
+                }
+            });
+            
+            // Save to localStorage
+            const data = {
+                budget: budgetData,
+                expenses: expenseData,
+                notes,
+                month: currentMonth,
+                year: currentYear,
+                currency: currentCurrency
+            };
+            
+            try {
+                localStorage.setItem(getStorageKey(), JSON.stringify(data));
+                showToast('Budget data saved successfully!');
+                loadMonthHistory();
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') {
+                    showToast('Error: Storage is full. Please clear some old data.');
+                } else {
+                    showToast('Error saving data: ' + e.message);
+                }
+            }
+        }
+        
+        // Load data for current month
+        function loadData() {
+            const savedData = localStorage.getItem(getStorageKey());
+            
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    
+                    // Load currency if available
+                    if (data.currency) {
+                        currentCurrency = data.currency;
+                        currencySelect.value = currentCurrency;
+                    }
+                    
+                    // Load budget data
+                    budgetBody.innerHTML = '';
+                    if (data.budget && data.budget.length > 0) {
+                        data.budget.forEach(item => {
+                            const row = createBudgetRow();
+                            row.querySelector('.category-select').value = item.category;
+                            row.querySelector('.budget-desc').value = item.description || '';
+                            row.querySelector('.budget-amount').value = item.amount || 0;
+                            budgetBody.appendChild(row);
+                        });
+                    } else {
+                        budgetBody.appendChild(createBudgetRow());
+                    }
+                    
+                    // Load expense data
+                    expensesBody.innerHTML = '';
+                    if (data.expenses && data.expenses.length > 0) {
+                        data.expenses.forEach(item => {
+                            const row = createExpenseRow();
+                            row.querySelector('.category-select').value = item.category;
+                            row.querySelector('.expense-desc').value = item.description || '';
+                            row.querySelector('.expense-amount').value = item.amount || 0;
+                            expensesBody.appendChild(row);
+                        });
+                    } else {
+                        expensesBody.appendChild(createExpenseRow());
+                    }
+                    
+                    // Load notes
+                    document.getElementById('budget-notes').value = data.notes || '';
+                    
+                    // Update history list active item
+                    updateHistoryListActive();
+                    return;
+                } catch (e) {
+                    console.error("Error loading data:", e);
+                    showToast("Error loading saved data. Resetting to default.");
+                }
+            }
+            
+            // Default rows if no saved data
+            budgetBody.innerHTML = '';
+            budgetBody.appendChild(createBudgetRow());
+            expensesBody.innerHTML = '';
+            expensesBody.appendChild(createExpenseRow());
+            document.getElementById('budget-notes').value = '';
+            
+            // Update history list active item
+            updateHistoryListActive();
+        }
+        
+        // Load month history
+        function loadMonthHistory() {
+            historyList.innerHTML = '';
+            const keys = Object.keys(localStorage);
+            const monthKeys = [];
+            
+            keys.forEach(key => {
+                if (key.startsWith('budgetPlanner_')) {
+                    const parts = key.split('_');
+                    if (parts.length === 3) {
+                        const year = parseInt(parts[1]);
+                        const month = parseInt(parts[2]);
+                        if (!isNaN(year) && !isNaN(month) && month >= 0 && month <= 11) {
+                            monthKeys.push({key, year, month});
+                        }
+                    }
+                }
+            });
+            
+            // Sort by year and month (newest first)
+            monthKeys.sort((a, b) => {
+                if (a.year !== b.year) return b.year - a.year;
+                return b.month - a.month;
+            });
+            
+            // Add to history list
+            monthKeys.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.textContent = `${months[item.month]} ${item.year}`;
+                historyItem.dataset.year = item.year;
+                historyItem.dataset.month = item.month;
+                
+                historyItem.addEventListener('click', () => {
+                    currentYear = item.year;
+                    currentMonth = item.month;
+                    updateMonthDisplay();
+                    loadData();
+                    calculateTotals();
+                });
+                
+                historyList.appendChild(historyItem);
+            });
+            
+            updateHistoryListActive();
+        }
+        
+        // Update active history item
+        function updateHistoryListActive() {
+            const items = historyList.querySelectorAll('.history-item');
+            items.forEach(item => {
+                if (parseInt(item.dataset.year) === currentYear &&
+                    parseInt(item.dataset.month) === currentMonth) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+        
+        // Reset current month
+        function resetPlanner() {
+            if (confirm("Are you sure you want to reset the current month? All data for this month will be lost.")) {
+                localStorage.removeItem(getStorageKey());
+                budgetBody.innerHTML = '';
+                budgetBody.appendChild(createBudgetRow());
+                expensesBody.innerHTML = '';
+                expensesBody.appendChild(createExpenseRow());
+                document.getElementById('budget-notes').value = '';
+                calculateTotals();
+                loadMonthHistory();
+                showToast('Current month has been reset');
+            }
+        }
+        
+        // Clear all history
+        function clearAllHistory() {
+            if (confirm("Are you sure you want to clear ALL budget history? This action cannot be undone.")) {
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.startsWith('budgetPlanner_')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                // Also remove currency preference?
+                showToast('All budget history has been cleared');
+                loadMonthHistory();
+                loadData();
+                calculateTotals();
+            }
+        }
+        
+        // Export to PDF
+        function exportToPDF() {
+            showToast('Generating PDF...');
+            
+            // Temporarily hide action buttons and exit button for cleaner PDF
+            const actionButtons = document.querySelector('.action-buttons');
+            const exitButton = document.querySelector('.exit-btn');
+            const originalActionDisplay = actionButtons.style.display;
+            const originalExitDisplay = exitButton.style.display;
+            
+            actionButtons.style.display = 'none';
+            exitButton.style.display = 'none';
+            
+            // Use html2canvas to capture the container
+            html2canvas(document.querySelector('.container')).then(canvas => {
+                // Restore the hidden elements
+                actionButtons.style.display = originalActionDisplay;
+                exitButton.style.display = originalExitDisplay;
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm'
+                });
+                
+                // Calculate the PDF dimensions to maintain aspect ratio
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                
+                // Generate a filename with the current month and year
+                const fileName = `Budget_${months[currentMonth]}_${currentYear}.pdf`;
+                
+                // Save the PDF
+                pdf.save(fileName);
+                showToast('PDF exported successfully!');
+            }).catch(err => {
+                // Restore the hidden elements even if there's an error
+                actionButtons.style.display = originalActionDisplay;
+                exitButton.style.display = originalExitDisplay;
+                
+                console.error('Error generating PDF:', err);
+                showToast('Error generating PDF. Please try again.');
+            });
+        }
+        
+        // Show toast notification
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Navigate to previous month
+        function goToPreviousMonth() {
+            // Save current month before navigating
+            saveData();
+            
+            // Update month/year
+            if (currentMonth === 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else {
+                currentMonth--;
+            }
+            
+            updateMonthDisplay();
+            loadData();
+            calculateTotals();
+            showToast(`Navigated to ${months[currentMonth]} ${currentYear}`);
+        }
+        
+        // Navigate to next month
+        function goToNextMonth() {
+            // Save current month before navigating
+            saveData();
+            
+            // Update month/year
+            if (currentMonth === 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else {
+                currentMonth++;
+            }
+            
+            updateMonthDisplay();
+            loadData();
+            calculateTotals();
+            showToast(`Navigated to ${months[currentMonth]} ${currentYear}`);
+        }
+        
+        // Debounce function for performance
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    func.apply(context, args);
+                }, wait);
+            };
+        }
+        
+        // Create debounced versions
+        const debouncedCalculateTotals = debounce(calculateTotals, 300);
+        const debouncedSaveData = debounce(saveData, 1000);
+        
+        // Attach event listeners
+        function attachEventListeners() {
+            // Previous month button
+            prevMonthBtn.addEventListener('click', goToPreviousMonth);
+            
+            // Next month button
+            nextMonthBtn.addEventListener('click', goToNextMonth);
+            
+            // Currency select change
+            currencySelect.addEventListener('change', function() {
+                saveCurrency(this.value);
+            });
+            
+            // Save button
+            saveBtn.addEventListener('click', saveData);
+            
+            // Export button
+            exportBtn.addEventListener('click', exportToPDF);
+            
+            // Reset button
+            resetBtn.addEventListener('click', resetPlanner);
+            
+            // Clear history button
+            clearHistoryBtn.addEventListener('click', clearAllHistory);
+            
+            // Exit button
+            exitBtn.addEventListener('click', function() {
+                window.location.href = 'C:\\Users\\Shambavi M\\Desktop\\personal-assistant\\frontend\\public\\index.html';
+            });
+            
+            // Add budget row button
+            addBudgetRowBtn.addEventListener('click', function() {
+                budgetBody.appendChild(createBudgetRow());
+            });
+            
+            // Add expense row button
+            addExpenseRowBtn.addEventListener('click', function() {
+                expensesBody.appendChild(createExpenseRow());
+            });
+            
+            // Delete row event delegation
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('delete-row') ||
+                    e.target.closest('.delete-row')) {
+                    const row = e.target.closest('tr');
+                    if (row) {
+                        row.remove();
+                        debouncedCalculateTotals();
+                        debouncedSaveData();
+                    }
+                }
+            });
+            
+            // Input change listeners
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('budget-amount') ||
+                    e.target.classList.contains('expense-amount') ||
+                    e.target.classList.contains('budget-desc') ||
+                    e.target.classList.contains('expense-desc') ||
+                    e.target.classList.contains('category-select')) {
+                    debouncedCalculateTotals();
+                    debouncedSaveData();
+                }
+            });
+            
+            // Auto-save when leaving the page
+            window.addEventListener('beforeunload', debouncedSaveData);
+        }
+        
+        // Initialize the app
+        initApp();
+    </script>
+</body>
+</html>
